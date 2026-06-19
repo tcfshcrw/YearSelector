@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>考題年份抽選</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="考題抽選">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 font-sans selection:bg-blue-200">
+    
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+        <h1 class="text-2xl font-bold text-center mb-8 text-gray-800">考題年份抽選器</h1>
+        
+        <div class="flex gap-4 mb-6">
+            <div class="flex-1">
+                <label for="startYear" class="block text-sm font-semibold text-gray-600 mb-2">起始年份</label>
+                <input type="number" id="startYear" class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-center text-lg" value="100">
+            </div>
+            <div class="flex-1">
+                <label for="endYear" class="block text-sm font-semibold text-gray-600 mb-2">結束年份</label>
+                <input type="number" id="endYear" class="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-center text-lg" value="112">
+            </div>
+        </div>
+
+        <button id="drawBtn" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 mb-8 text-lg flex justify-center items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            開始抽選
+        </button>
+
+        <div>
+            <label for="result" class="block text-sm font-semibold text-gray-600 mb-2 text-center">抽選結果</label>
+            <input type="text" id="result" class="w-full border-2 border-blue-100 rounded-xl p-4 text-center text-3xl font-extrabold text-blue-600 bg-blue-50 outline-none transition-colors" readonly placeholder="---">
+        </div>
+        
+        <div id="errorMsg" class="text-red-500 text-sm text-center mt-4 hidden"></div>
+
+        <button id="clearBtn" class="mt-4 text-sm text-gray-400 hover:text-red-500 underline w-full text-center transition-colors outline-none focus:text-red-500">清除已抽選紀錄</button>
+    </div>
+
+    <script>
+        // 核心抽選邏輯
+        const drawBtn = document.getElementById('drawBtn');
+        const startYearInput = document.getElementById('startYear');
+        const endYearInput = document.getElementById('endYear');
+        const resultInput = document.getElementById('result');
+        const errorMsg = document.getElementById('errorMsg');
+        const clearBtn = document.getElementById('clearBtn'); // 新增清除紀錄按鈕
+
+        let isDrawing = false;
+        
+        // 狀態管理與 LocalStorage
+        const STORAGE_KEY = 'examDrawState';
+        let appState = {
+            startYear: 100,
+            endYear: 112,
+            drawnYears: []
+        };
+
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    appState = JSON.parse(saved);
+                    startYearInput.value = appState.startYear || 100;
+                    endYearInput.value = appState.endYear || 112;
+                    if (!appState.drawnYears) appState.drawnYears = [];
+                } catch(e) {
+                    console.error('讀取紀錄失敗', e);
+                }
+            }
+        }
+
+        function saveState() {
+            appState.startYear = parseInt(startYearInput.value, 10);
+            appState.endYear = parseInt(endYearInput.value, 10);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        }
+
+        // 監聽鍵盤輸入與數值改變，即時儲存
+        startYearInput.addEventListener('input', saveState);
+        endYearInput.addEventListener('input', saveState);
+
+        // 點擊清除紀錄
+        clearBtn.addEventListener('click', () => {
+            appState.drawnYears = [];
+            saveState();
+            resultInput.value = "---";
+            resultInput.classList.remove('text-red-600', 'border-red-200', 'bg-red-50');
+            resultInput.classList.add('text-blue-600', 'border-blue-100', 'bg-blue-50');
+            alert('抽選紀錄已清除');
+        });
+
+        // 初始化讀取
+        loadState();
+
+        drawBtn.addEventListener('click', () => {
+            if (isDrawing) return;
+            
+            errorMsg.classList.add('hidden');
+            const start = parseInt(startYearInput.value, 10);
+            const end = parseInt(endYearInput.value, 10);
+
+            // 簡單的驗證
+            if (isNaN(start) || isNaN(end)) {
+                showError("請輸入有效的數字");
+                return;
+            }
+            if (start > end) {
+                showError("起始年份不能大於結束年份");
+                return;
+            }
+
+            isDrawing = true;
+            drawBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            
+            // 每次抽選前恢復預設顏色
+            resultInput.classList.remove('text-red-600', 'border-red-200', 'bg-red-50');
+            resultInput.classList.add('text-blue-600', 'border-blue-100', 'bg-blue-50');
+            
+            const targetYear = Math.floor(Math.random() * (end - start + 1)) + start;
+            
+            // 轉動動畫效果
+            let rolls = 0;
+            const maxRolls = 15;
+            const rollInterval = setInterval(() => {
+                const randomTemp = Math.floor(Math.random() * (end - start + 1)) + start;
+                resultInput.value = randomTemp;
+                rolls++;
+                
+                if (rolls >= maxRolls) {
+                    clearInterval(rollInterval);
+                    
+                    if (appState.drawnYears.includes(targetYear)) {
+                        resultInput.value = `${targetYear} (已抽取過)`;
+                        // 若已抽取過，變更樣式為紅色提醒
+                        resultInput.classList.remove('text-blue-600', 'border-blue-100', 'bg-blue-50');
+                        resultInput.classList.add('text-red-600', 'border-red-200', 'bg-red-50');
+                    } else {
+                        resultInput.value = targetYear;
+                        // 紀錄至陣列並儲存 JSON
+                        appState.drawnYears.push(targetYear);
+                        saveState();
+                    }
+                    
+                    isDrawing = false;
+                    drawBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                }
+            }, 50);
+        });
+
+        function showError(message) {
+            errorMsg.textContent = message;
+            errorMsg.classList.remove('hidden');
+            resultInput.value = "---";
+        }
+
+        // 動態生成 PWA Manifest 與 Service Worker 以符合單一檔案需求
+        const setupPWA = () => {
+            // 生成一個簡單的 SVG Icon 用於 PWA
+            const iconSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%232563eb'/><text x='256' y='320' font-size='200' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='white'>抽</text></svg>`;
+            const iconUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(iconSvg);
+
+            // 動態注入 Apple Touch Icon
+            const appleIcon = document.createElement('link');
+            appleIcon.rel = 'apple-touch-icon';
+            appleIcon.href = iconUrl;
+            document.head.appendChild(appleIcon);
+
+            // 建立 Manifest
+            const manifest = {
+                name: "考題年份抽選",
+                short_name: "考題抽選",
+                description: "一個簡單的考題年份隨機抽選工具",
+                start_url: location.href,
+                display: "standalone",
+                background_color: "#f3f4f6",
+                theme_color: "#2563eb",
+                icons: [
+                    {
+                        src: iconUrl,
+                        sizes: "512x512",
+                        type: "image/svg+xml",
+                        purpose: "any maskable"
+                    }
+                ]
+            };
+
+            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = manifestUrl;
+            document.head.appendChild(link);
+
+            // 註冊基礎的 Service Worker
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    self.addEventListener('install', (e) => self.skipWaiting());
+                    self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
+                    self.addEventListener('fetch', (e) => {
+                        // 離線快取邏輯可以加在這裡，目前採用預設網路請求
+                    });
+                `;
+                const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(swBlob);
+                navigator.serviceWorker.register(swUrl).catch(err => console.log('Service Worker 註冊失敗', err));
+            }
+        };
+
+        // 啟動 PWA 設置
+        setupPWA();
+    </script>
+</body>
+</html>
