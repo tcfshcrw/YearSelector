@@ -12,6 +12,15 @@
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 font-sans selection:bg-blue-200">
     
+    <!-- 新增：PDF 預覽彈出視窗 (Modal) -->
+    <div id="pdfModal" class="fixed inset-0 bg-black/80 z-50 hidden flex-col backdrop-blur-sm">
+        <div class="flex justify-between items-center p-4 bg-gray-900 text-white shadow-lg">
+            <h2 id="modalTitle" class="text-lg font-bold tracking-wider">PDF 預覽</h2>
+            <button id="closeModalBtn" class="text-gray-300 hover:text-white bg-gray-800 hover:bg-red-500 rounded-full w-8 h-8 flex items-center justify-center transition-colors text-xl font-bold">&times;</button>
+        </div>
+        <iframe id="pdfFrame" class="w-full flex-1 bg-white border-0" src=""></iframe>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
         <h1 class="text-2xl font-bold text-center mb-8 text-gray-800">考題年份抽選器</h1>
         
@@ -36,11 +45,11 @@
             <input type="text" id="result" class="w-full border-2 border-blue-100 rounded-xl p-4 text-center text-3xl font-extrabold text-blue-600 bg-blue-50 outline-none transition-colors" readonly placeholder="---">
         </div>
 
-        <!-- 新增：考題連結按鈕區域 (配合新命名規則) -->
+        <!-- 更新：將 <a> 標籤改為 <button>，以配合內嵌顯示邏輯 -->
         <div id="pdfLinks" class="grid grid-cols-2 gap-3 mt-4 hidden">
-            <a id="linkA" href="#" target="_blank" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow transition-colors text-center">專A 試題</a>
-            <a id="linkA_Ans" href="#" target="_blank" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-xl shadow transition-colors text-center">專A 解答</a>
-            <a id="linkB" href="#" target="_blank" class="col-span-2 bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 rounded-xl shadow transition-colors text-center">專B 試題</a>
+            <button id="btnA" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow transition-colors text-center">專A 試題</button>
+            <button id="btnA_Ans" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-xl shadow transition-colors text-center">專A 解答</button>
+            <button id="btnB" class="col-span-2 bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 rounded-xl shadow transition-colors text-center">專B 試題</button>
         </div>
         
         <div id="errorMsg" class="text-red-500 text-sm text-center mt-4 hidden"></div>
@@ -57,13 +66,20 @@
         const errorMsg = document.getElementById('errorMsg');
         const clearBtn = document.getElementById('clearBtn'); // 新增清除紀錄按鈕
         
-        // 新增：連結元素參考
+        // 更新：連結元素參考改為按鈕
         const pdfLinksContainer = document.getElementById('pdfLinks');
-        const linkA = document.getElementById('linkA');
-        const linkA_Ans = document.getElementById('linkA_Ans'); // 新增專A解答
-        const linkB = document.getElementById('linkB');
+        const btnA = document.getElementById('btnA');
+        const btnA_Ans = document.getElementById('btnA_Ans');
+        const btnB = document.getElementById('btnB');
+
+        // 新增：Modal 元素參考
+        const pdfModal = document.getElementById('pdfModal');
+        const pdfFrame = document.getElementById('pdfFrame');
+        const modalTitle = document.getElementById('modalTitle');
+        const closeModalBtn = document.getElementById('closeModalBtn');
 
         let isDrawing = false;
+        let currentTargetYear = null; // 紀錄當前抽到的年份
         
         // 狀態管理與 LocalStorage
         const STORAGE_KEY = 'examDrawState';
@@ -110,6 +126,28 @@
 
         // 初始化讀取
         loadState();
+
+        // 新增：開啟 PDF Modal 的函式
+        function openPdfModal(title, src) {
+            modalTitle.textContent = title;
+            pdfFrame.src = src;
+            pdfModal.classList.remove('hidden');
+            pdfModal.classList.add('flex');
+            document.body.style.overflow = 'hidden'; // 防止背景滾動
+        }
+
+        // 新增：關閉 PDF Modal 的事件
+        closeModalBtn.addEventListener('click', () => {
+            pdfModal.classList.add('hidden');
+            pdfModal.classList.remove('flex');
+            pdfFrame.src = ''; // 清空 src 以停止資源載入
+            document.body.style.overflow = ''; // 恢復背景滾動
+        });
+
+        // 新增：綁定按鈕點擊事件，開啟內嵌 PDF
+        btnA.addEventListener('click', () => openPdfModal(`${currentTargetYear}年 - 專A 試題`, `./pdfs/${currentTargetYear}-1.pdf`));
+        btnA_Ans.addEventListener('click', () => openPdfModal(`${currentTargetYear}年 - 專A 解答`, `./pdfs/${currentTargetYear}-1-1.pdf`));
+        btnB.addEventListener('click', () => openPdfModal(`${currentTargetYear}年 - 專B 試題`, `./pdfs/${currentTargetYear}-2.pdf`));
 
         drawBtn.addEventListener('click', () => {
             if (isDrawing) return;
@@ -161,11 +199,8 @@
                         saveState();
                     }
                     
-                    // 設定 PDF 連結路徑並顯示按鈕
-                    // 命名規則： 年份-科目-解答.pdf
-                    linkA.href = `./pdfs/${targetYear}-1.pdf`;       // 專A試題
-                    linkA_Ans.href = `./pdfs/${targetYear}-1-1.pdf`; // 專A解答
-                    linkB.href = `./pdfs/${targetYear}-2.pdf`;       // 專B試題
+                    // 紀錄當前年份並顯示按鈕
+                    currentTargetYear = targetYear;
                     pdfLinksContainer.classList.remove('hidden');
 
                     isDrawing = false;
