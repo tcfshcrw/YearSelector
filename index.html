@@ -35,6 +35,13 @@
             <label for="result" class="block text-sm font-semibold text-gray-600 mb-2 text-center">抽選結果</label>
             <input type="text" id="result" class="w-full border-2 border-blue-100 rounded-xl p-4 text-center text-3xl font-extrabold text-blue-600 bg-blue-50 outline-none transition-colors" readonly placeholder="---">
         </div>
+
+        <!-- 新增：考題連結按鈕區域 (配合新命名規則) -->
+        <div id="pdfLinks" class="grid grid-cols-2 gap-3 mt-4 hidden">
+            <a id="linkA" href="#" target="_blank" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow transition-colors text-center">專A 試題</a>
+            <a id="linkA_Ans" href="#" target="_blank" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-xl shadow transition-colors text-center">專A 解答</a>
+            <a id="linkB" href="#" target="_blank" class="col-span-2 bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 rounded-xl shadow transition-colors text-center">專B 試題</a>
+        </div>
         
         <div id="errorMsg" class="text-red-500 text-sm text-center mt-4 hidden"></div>
 
@@ -49,6 +56,12 @@
         const resultInput = document.getElementById('result');
         const errorMsg = document.getElementById('errorMsg');
         const clearBtn = document.getElementById('clearBtn'); // 新增清除紀錄按鈕
+        
+        // 新增：連結元素參考
+        const pdfLinksContainer = document.getElementById('pdfLinks');
+        const linkA = document.getElementById('linkA');
+        const linkA_Ans = document.getElementById('linkA_Ans'); // 新增專A解答
+        const linkB = document.getElementById('linkB');
 
         let isDrawing = false;
         
@@ -91,6 +104,7 @@
             resultInput.value = "---";
             resultInput.classList.remove('text-red-600', 'border-red-200', 'bg-red-50');
             resultInput.classList.add('text-blue-600', 'border-blue-100', 'bg-blue-50');
+            pdfLinksContainer.classList.add('hidden'); // 隱藏連結
             alert('抽選紀錄已清除');
         });
 
@@ -116,6 +130,7 @@
 
             isDrawing = true;
             drawBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            pdfLinksContainer.classList.add('hidden'); // 開始抽選時隱藏連結
             
             // 每次抽選前恢復預設顏色
             resultInput.classList.remove('text-red-600', 'border-red-200', 'bg-red-50');
@@ -146,6 +161,13 @@
                         saveState();
                     }
                     
+                    // 設定 PDF 連結路徑並顯示按鈕
+                    // 命名規則： 年份-科目-解答.pdf
+                    linkA.href = `./pdfs/${targetYear}-1.pdf`;       // 專A試題
+                    linkA_Ans.href = `./pdfs/${targetYear}-1-1.pdf`; // 專A解答
+                    linkB.href = `./pdfs/${targetYear}-2.pdf`;       // 專B試題
+                    pdfLinksContainer.classList.remove('hidden');
+
                     isDrawing = false;
                     drawBtn.classList.remove('opacity-75', 'cursor-not-allowed');
                 }
@@ -156,6 +178,7 @@
             errorMsg.textContent = message;
             errorMsg.classList.remove('hidden');
             resultInput.value = "---";
+            pdfLinksContainer.classList.add('hidden'); // 發生錯誤時隱藏連結
         }
 
         // 動態生成 PWA Manifest 與 Service Worker 以符合單一檔案需求
