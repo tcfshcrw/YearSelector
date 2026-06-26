@@ -51,6 +51,24 @@
             </div>
         </div>
 
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-500 mb-2">抽選科目</label>
+            <div class="flex gap-3">
+                <label class="flex-1 cursor-pointer">
+                    <input type="radio" name="subject" value="all" class="peer hidden" checked>
+                    <div class="text-center py-2.5 border border-gray-200 rounded-xl peer-checked:bg-blue-500 peer-checked:text-white peer-checked:border-blue-500 transition-colors font-medium">不拘</div>
+                </label>
+                <label class="flex-1 cursor-pointer">
+                    <input type="radio" name="subject" value="A" class="peer hidden">
+                    <div class="text-center py-2.5 border border-gray-200 rounded-xl peer-checked:bg-emerald-500 peer-checked:text-white peer-checked:border-emerald-500 transition-colors font-medium">專A</div>
+                </label>
+                <label class="flex-1 cursor-pointer">
+                    <input type="radio" name="subject" value="B" class="peer hidden">
+                    <div class="text-center py-2.5 border border-gray-200 rounded-xl peer-checked:bg-purple-500 peer-checked:text-white peer-checked:border-purple-500 transition-colors font-medium">專B</div>
+                </label>
+            </div>
+        </div>
+
         <button id="drawBtn" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-4 rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 mb-8 text-lg flex justify-center items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             開始抽選
@@ -185,18 +203,27 @@
                 return;
             }
 
-            // 過濾出尚未「全部完成」的年份
+            const selectedSubject = document.querySelector('input[name="subject"]:checked').value;
+
+            // 過濾出符合條件且尚未完成的年份
             const validYears = [];
             for (let y = start; y <= end; y++) {
                 const status = appState.completed[y] || { a: false, b: false };
-                // 只要 A 沒完成，或 B 沒完成，就加入抽選池
-                if (!(status.a && status.b)) {
+                
+                if (selectedSubject === 'all') {
+                    // 不管是否完成都加入抽選池
                     validYears.push(y);
+                } else if (selectedSubject === 'A') {
+                    // 只有 A 沒完成才加入抽選池
+                    if (!status.a) validYears.push(y);
+                } else if (selectedSubject === 'B') {
+                    // 只有 B 沒完成才加入抽選池
+                    if (!status.b) validYears.push(y);
                 }
             }
 
             if (validYears.length === 0) {
-                showError("此區間內的所有年份皆已完成！");
+                showError("此區間內符合條件的皆已完成！");
                 return;
             }
 
