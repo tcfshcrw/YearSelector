@@ -100,7 +100,15 @@
         
         <div id="errorMsg" class="text-red-500 text-sm text-center mt-4 font-medium hidden"></div>
 
-        <button id="clearBtn" class="mt-6 text-sm text-gray-400 hover:text-red-500 underline w-full text-center transition-colors outline-none focus:text-red-500">清除所有完成紀錄</button>
+        <!-- 已完成清單區 -->
+        <div class="mt-6 border-t border-gray-100 pt-4">
+            <h3 class="text-sm font-semibold text-gray-500 mb-3 text-center">已完成清單</h3>
+            <div id="completedList" class="flex flex-wrap gap-2 justify-center max-h-32 overflow-y-auto p-2 bg-gray-50 rounded-xl border border-gray-100 text-sm">
+                <span class="text-gray-400 italic">尚無完成紀錄</span>
+            </div>
+        </div>
+
+        <button id="clearBtn" class="mt-4 text-sm text-gray-400 hover:text-red-500 underline w-full text-center transition-colors outline-none focus:text-red-500">清除所有完成紀錄</button>
     </div>
 
     <script>
@@ -113,6 +121,7 @@
         const resultInput = document.getElementById('result');
         const errorMsg = document.getElementById('errorMsg');
         const clearBtn = document.getElementById('clearBtn'); 
+        const completedListContainer = document.getElementById('completedList');
         
         const pdfLinksContainer = document.getElementById('pdfLinks');
         const btnA = document.getElementById('btnA');
@@ -134,6 +143,30 @@
             completed: {} 
         };
 
+        function renderCompletedList() {
+            let hasAny = false;
+            let html = '';
+            
+            const years = Object.keys(appState.completed).map(Number).sort((a, b) => a - b);
+            years.forEach(year => {
+                const status = appState.completed[year];
+                if (status.a) {
+                    html += `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold tracking-wide shadow-sm border border-emerald-200">${year} 專A</span>`;
+                    hasAny = true;
+                }
+                if (status.b) {
+                    html += `<span class="px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-bold tracking-wide shadow-sm border border-purple-200">${year} 專B</span>`;
+                    hasAny = true;
+                }
+            });
+
+            if (!hasAny) {
+                completedListContainer.innerHTML = '<span class="text-gray-400 italic">尚無完成紀錄</span>';
+            } else {
+                completedListContainer.innerHTML = html;
+            }
+        }
+
         function loadState() {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
@@ -145,9 +178,12 @@
                     
                     startYearInput.value = appState.startYear;
                     endYearInput.value = appState.endYear;
+                    renderCompletedList();
                 } catch(e) {
                     console.error('讀取紀錄失敗', e);
                 }
+            } else {
+                renderCompletedList();
             }
         }
 
@@ -166,6 +202,7 @@
             appState.completed[currentTargetYear].a = checkA.checked;
             appState.completed[currentTargetYear].b = checkB.checked;
             saveState();
+            renderCompletedList();
         }
 
         checkA.addEventListener('change', handleCheckboxChange);
@@ -178,6 +215,7 @@
             if(confirm('確定要清除所有年份的完成紀錄嗎？')) {
                 appState.completed = {};
                 saveState();
+                renderCompletedList();
                 resultInput.value = "---";
                 pdfLinksContainer.classList.add('hidden');
                 completionCheckboxes.classList.add('hidden');
