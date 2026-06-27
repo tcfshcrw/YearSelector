@@ -143,6 +143,30 @@
             completed: {} 
         };
 
+        window.removeRecord = function(year, subject) {
+            if (!appState.completed[year]) return;
+            
+            if (subject === 'A') {
+                appState.completed[year].a = false;
+            } else if (subject === 'B') {
+                appState.completed[year].b = false;
+            }
+
+            // 保持資料乾淨
+            if (!appState.completed[year].a && !appState.completed[year].b) {
+                delete appState.completed[year];
+            }
+
+            saveState();
+            renderCompletedList();
+
+            // 如果刪除的剛好是現在畫面上正在顯示的年份，同步更新勾選框
+            if (currentTargetYear === year) {
+                if (subject === 'A') checkA.checked = false;
+                if (subject === 'B') checkB.checked = false;
+            }
+        };
+
         function renderCompletedList() {
             let hasAny = false;
             let html = '';
@@ -151,11 +175,11 @@
             years.forEach(year => {
                 const status = appState.completed[year];
                 if (status.a) {
-                    html += `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold tracking-wide shadow-sm border border-emerald-200">${year} 專A</span>`;
+                    html += `<span class="flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold tracking-wide shadow-sm border border-emerald-200">${year} 專A <button onclick="removeRecord(${year}, 'A')" class="hover:bg-emerald-200 hover:text-red-500 rounded-full w-4 h-4 flex items-center justify-center transition-colors ml-0.5">&times;</button></span>`;
                     hasAny = true;
                 }
                 if (status.b) {
-                    html += `<span class="px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-bold tracking-wide shadow-sm border border-purple-200">${year} 專B</span>`;
+                    html += `<span class="flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-bold tracking-wide shadow-sm border border-purple-200">${year} 專B <button onclick="removeRecord(${year}, 'B')" class="hover:bg-purple-200 hover:text-red-500 rounded-full w-4 h-4 flex items-center justify-center transition-colors ml-0.5">&times;</button></span>`;
                     hasAny = true;
                 }
             });
